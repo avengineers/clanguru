@@ -177,7 +177,7 @@ class CompilationOptionsManager:
 
 
 def _filter_includes_and_defines(options: list[str]) -> list[str]:
-    """Keep only -I and -D flags (including their values when passed as separate arguments)."""
+    """Keep only -I, -isystem and -D flags (including their values when passed as separate arguments)."""
     filtered: list[str] = []
     take_next = False
     for option in options:
@@ -185,10 +185,10 @@ def _filter_includes_and_defines(options: list[str]) -> list[str]:
             filtered.append(option)
             take_next = False
             continue
-        if option in ("-I", "-D"):
+        if option in ("-I", "-isystem", "-D"):
             filtered.append(option)
             take_next = True
-        elif option.startswith(("-I", "-D")):
+        elif option.startswith(("-I", "-isystem", "-D")):
             filtered.append(option)
     return filtered
 

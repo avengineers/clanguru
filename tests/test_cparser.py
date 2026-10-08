@@ -1,3 +1,4 @@
+import json
 import textwrap
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -307,6 +308,30 @@ def test_parsing_gtest_tests(tmp_path: Path, gtest_include_path: Path) -> None:
     param_class = classes_by_name["BlinkPeriodTest_CalculatesCorrectBlinkPeriod_Test"]
     assert param_class.body.content == "TEST_P(BlinkPeriodTest, CalculatesCorrectBlinkPeriod)"
     assert "{{ gtest.test }}" in (param_class.description or "")
+
+
+def test_parsing_with_system_include_path(tmp_path: Path) -> None:
+    """A macro from a header found only via ``-isystem`` must enable the code it guards."""
+    config_dir = tmp_path / "kconfig"
+    config_dir.mkdir()
+    (config_dir / "autoconf.h").write_text("#define CONFIG_FEATURE 1\n")
+    source_file = tmp_path / "feature.c"
+    source_file.write_text(
+        dedent("""\
+        #include "autoconf.h"
+        #if CONFIG_FEATURE
+        // Only present when the feature is selected
+        void feature_function(void) {}
+        #endif
+        """)
+    )
+    entry = {"directory": str(tmp_path), "file": str(source_file), "arguments": ["gcc", "-isystem", str(config_dir), "-c", str(source_file)]}
+    compile_db = tmp_path / "compile_commands.json"
+    compile_db.write_text(json.dumps([entry]))
+
+    tu = CLangParser().load(source_file, CompilationOptionsManager(compile_db))
+
+    assert [f.name for f in CLangParser.get_functions(tu)] == ["feature_function"]
 
 
 def test_token_cached_fields_match_raw_properties(tmp_path: Path) -> None:

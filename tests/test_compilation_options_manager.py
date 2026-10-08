@@ -181,6 +181,16 @@ def test_clean_up_arguments_with_partial_paths(compile_command):
             id="combined_and_separate",
         ),
         pytest.param(
+            ["g++", "-I/project/src", "-isystem", "/build/kconfig", "-Wall", "-c", "/home/user/project/input.c", "-o", "/home/user/project/output.o"],
+            ["-I/project/src", "-isystem", "/build/kconfig"],
+            id="separate_system_include",
+        ),
+        pytest.param(
+            ["g++", "-isystem/build/kconfig", "-DDEBUG", "-c", "/home/user/project/input.c", "-o", "/home/user/project/output.o"],
+            ["-isystem/build/kconfig", "-DDEBUG"],
+            id="combined_system_include",
+        ),
+        pytest.param(
             ["gcc", "-Wall", "-Werror", "-O2", "-std=c11", "-c", "/home/user/project/input.c", "-o", "/home/user/project/output.o"],
             [],
             id="no_includes_or_defines",
@@ -266,7 +276,7 @@ def test_filter_compilation_database(tmp_path: Path) -> None:
             id="windows_backslashes_kept",
         ),
         pytest.param(
-            r'gcc -DVERSION=\"1.0\" -I/usr/include -c input.c -o output.o',
+            r"gcc -DVERSION=\"1.0\" -I/usr/include -c input.c -o output.o",
             Path("gcc"),
             ['-DVERSION="1.0"', "-I/usr/include"],
             marks=pytest.mark.skipif(os.name == "nt", reason="Windows has no backslash escape to resolve"),
